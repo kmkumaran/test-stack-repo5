@@ -1,0 +1,26 @@
+name: "build"
+
+on: [push]
+
+env:
+  NODE_VERSION: '___NODE_VERSION___'
+
+jobs:
+  build: 
+    runs-on: ubuntu-latest
+    name: "build nextjs app"
+    
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: use node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+      
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run build 
+          npm run test

@@ -1,0 +1,42 @@
+name: "deploy"
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '___NODE_VERSION___'
+  AZURE_WEBAPP_NAME: ___AZURE_WEBAPP_NAME___
+  AZURE_WEBAPP_PACKAGE_PATH: '___AZURE_WEBAPP_PACKAGE_PATH__'
+
+jobs:
+  deploy: 
+    runs-on: ubuntu-latest
+    name: "deploy nextjs app to azure-appservice"
+    
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: use node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+      
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run build 
+          npm run test
+
+      - uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: deploy to azure appservice
+        uses: azure/webapps-deploy@v2
+        with: 
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+

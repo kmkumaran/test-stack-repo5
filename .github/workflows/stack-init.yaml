@@ -1,0 +1,57 @@
+name: "provision azure resources"
+
+on:
+  workflow_dispatch:
+    inputs:
+      NODE_VERSION:
+        required: true
+        description: 'nodejs version to be used'
+        default: v12.22.4
+      NEXTJS_VERSION:
+        required: true
+        description: 'nextjs version to be used'
+        default: v11.0.1
+
+jobs:
+  stack-initialization:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: use node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org/
+
+      - name: stacks framework code generation
+        run: npx create-next-app nextjs-scaffold --use-npm --example "https://github.com/vercel/next-learn-starter/tree/master/learn-starter |
+          cp -r nextjs-scaffold/* . |
+          rm -rf nextjs-scaffold
+
+      - name: substitute user inputs in the workflow files
+        uses: microsoft/variable-substitution@v1 
+        with:
+          files: '.github/workflows/deploy.yaml, .github/workflows/build.yaml'
+        env:
+          ___NODE_VERSION___: '${{ env.NODE_VERSION }}'
+          ___AZURE_WEBAPP_NAME___: '${{ env.AZURE_WEBAPP_NAME }}'
+          ___AZURE_WEBAPP_PACKAGE_PATH___: '${{ env.AZURE_WEBAPP_PACKAGE_PATH }}'
+
+      - name: stacks framework commit to repository
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const creator = context.payload.sender.login
+            const opts = github.issues.listForRepo.endpoint.merge({
+              ...context.repo,
+              creator,
+              files: 'all'
+            })
+
+            await github.issues.createCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Initial Commit!'
+            })
